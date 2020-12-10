@@ -1,0 +1,403 @@
+openapi: 3.0.0
+info:
+  description: Documentation to Internet Shop Service REST API (lab 5)
+  version: "3.0.0"
+  title: Internet Shop
+  contact:
+    email: naz@gmail.com
+servers:
+  - url: https://my-shop.io/api/v1
+  - url: http://my-shop.io/api/v1
+tags:
+- name: "user"
+  description: "Operations with Users"
+- name: "goods"
+  description: "Operations with Goods"
+  
+  
+paths:
+
+  /user/registration:
+    post:
+      tags:
+      - user
+      summary: Сreate user
+      operationId: createUser
+      requestBody:
+        $ref: '#/components/requestBodies/User'
+      responses:
+        "201":
+          description: User was created successfully
+        "401":
+          description: Access token is missing or invalid
+      security:
+      - authentification:
+        - write:an
+        
+  /user/login:
+    get:
+      tags:
+        - user
+      summary: Logs user into the system
+      operationId: loginUser
+      parameters:
+        - name: username
+          in: query
+          description: The user name for login
+          required: true
+          schema:
+            type: string
+        - name: password
+          in: query
+          description: The password for login in clear text
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          headers:
+            X-Rate-Limit:
+              description: calls per hour allowed by the user
+              schema:
+                type: integer
+                format: int32
+            X-Expires-After:
+              description: date in UTC when token expires
+              schema:
+                type: string
+                format: date-time
+          content:
+            application/json:
+              schema:
+                type: string
+            application/xml:
+              schema:
+                type: string
+        '400':
+          description: Invalid username/password supplied
+  /user/logout:
+    get:
+      tags:
+        - user
+      summary: Logs out current logged in user session
+      operationId: logoutUser
+      responses:
+        default:
+          description: successful operation
+  /user/{user_id}:
+    get:
+      tags:
+        - user
+      summary: Get user by user name
+      operationId: getUserByName
+      parameters:
+        - name: user_id
+          in: path
+          description: The name that needs to be fetched. Use user1 for testing.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid username supplied
+        '404':
+          description: User not found
+    put:
+      tags:
+        - user
+      summary: Updated user
+      description: This can only be done by the logged in user.
+      operationId: updateUser
+      parameters:
+        - name: user_id
+          in: path
+          description: name that need to be updated
+          required: true
+          schema:
+            type: string
+      responses:
+        '400':
+          description: invalid user
+        '404':
+          description: user does not exist
+    delete:
+      tags:
+        - user
+      summary: Deletes the user
+      description: only logged in users can do it
+      operationId: deleteUser
+      parameters:
+        - name: user_id
+          in: path
+          description: name to delete
+          required: true
+          schema:
+            type: string
+      responses:
+        '400':
+          description: invalid user
+        '404':
+          description: user does not exist
+          
+  /goods/find:
+    get:
+      tags:
+        - goods
+      summary: Finds goods
+      description: Multiple status values can be provided with comma separated strings
+      operationId: find
+      parameters:
+        - name: status
+          in: query
+          description: Status values that need to be considered for filter
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              enum:
+                - available to buy
+                - available to sell
+                - sold out
+                
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/xml:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Goods'
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Goods'
+        '400':
+          description: Invalid status value
+          content: {}
+      security:
+      - authentification:
+        - read:an
+  
+  /goods:
+    get:
+      tags:
+      - goods
+      summary: Get all goods, which user bought
+      operationId: showAn
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Goods'
+      security:
+      - authentification:
+        - read:an
+    post:
+      tags:
+        - goods
+      summary: New goods in the catalog
+      operationId: appGoods
+      requestBody:
+        description: Goods needs to be added to the purse
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Goods'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Goods'
+        required: true
+      responses:
+        '405':
+          description: Invalid input
+          content: {}
+      security:
+      - authentification:
+        - read:an
+      
+          
+  /goods/{anId}:
+    put:
+      tags:
+      - goods
+      summary: Edit goods
+      operationId: editAn
+      parameters:
+      - name: anId
+        in: path
+        description: Id of goods
+        required: true
+        schema:
+          type: integer
+          format: integer64
+      responses:
+        "200":
+          description: Goods was edited successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goods'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Goods'
+        "400":
+          description: Invalid announcement id
+        "404":
+          description: Goods was not found
+      security:
+      - authentification:
+        - write:an
+    delete:
+      tags:
+      - goods
+      summary: Delete goods by id
+      operationId: deleteAn
+      parameters:
+      - name: anId
+        in: path
+        description: Id of an goods
+        required: true
+        schema:
+          type: integer
+          format: integer64
+          
+      - name: status
+        in: query
+        description: Status values that need to be considered for filter
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            enum:
+              - available to buy
+              - available to sell
+              - sold out
+              
+      responses:
+        "200":
+          description: Goods was deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goods'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Goods'
+        "400":
+          description: Invalid ID
+        "404":
+          description: Goods was not found
+      security:
+      - authentification:
+        - delete:an
+    
+components:
+  requestBodies:
+      Goods:
+        description: Data of announcement object to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Goods'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Goods'
+        required: true
+        
+      User:
+        description: Creation of user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+  securitySchemes:
+    authentification:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: 'http://announcement.swagger.io/oauth/dialog'
+          scopes:
+            'write:an': write goods in your account
+            'read:an': read your goods
+            'delete:an': delete your goods
+  schemas:
+    User:
+      type: "object"
+      required:
+      - login
+      - password
+      - username
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        login:
+          type: "string"
+        password:
+          type: "string"
+        username:
+          type: "string"
+      xml:
+        name: "User"
+        
+    Statistics:
+      type: object
+      required:
+      - price
+      - amount
+      properties:
+        id:
+          type: integer
+          format: int64
+        price:
+          type: "number"
+          format: "float"
+        amount:
+          type: "integer"
+          format: "int64"
+      xml:
+        name: Statistics
+    
+    Goods:
+      type: "object"
+      required:
+      - name
+      - description
+      - statistics
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        statistics:
+          $ref: '#/components/schemas/Statistics'
+        name:
+          type: "string"
+        description:
+          type: "string"
+        
+      xml:
+        name: "Goods"

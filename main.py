@@ -11,6 +11,3 @@ def hello_world():
 
 
 server = run_simple('localhost', 5000, app, use_reloader=True)
-
-
-
